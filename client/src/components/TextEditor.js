@@ -24,10 +24,46 @@ export default function TextEditor() {
 		const s = io('http://localhost:3001');
 		setSocket(s);
 
+		// cleanup
 		return () => {
 			s.disconnect();
 		}
 	}, []);
+
+	// Handler for sending text changes
+	useEffect(() => {
+		if(socket == null || quill == null) return;
+
+		const textChangeHandler = (delta, oldDelta, source) => {
+			if(source !== 'user') return;
+			// send our changes made through socket
+			socket.emit('send-changes', delta);
+		}
+
+		quill.on('text-change', textChangeHandler);
+
+		// cleanup
+		return () => {
+			quill.off('text-change', textChangeHandler);
+		}
+	}, [socket, quill]);
+
+	// Handler for receiving text changes
+	useEffect(() => {
+		if(socket == null || quill == null) return;
+		
+		const changeReceiveHandler = (delta) => {
+			// apply received changes to our doc
+			quill.updateContents(delta);
+		}
+
+		socket.on('receive-changes', changeReceiveHandler);
+
+		// cleanup
+		return () => {
+			socket.off('receive-changes', changeReceiveHandler);
+		}
+	}, [socket, quill]);
 
 	const wrapperRef = useCallback((wrapper) => {
 		if (wrapper == null) return;

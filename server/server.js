@@ -8,5 +8,11 @@ const io = new Server(3001, {
 });
 
 io.on("connection", socket => {
+
 	console.log("Connected");
+
+	socket.on('send-changes', delta => {
+		// broadcast the changes to everyone else
+		socket.broadcast.emit('receive-changes', delta);
+	})
 })
