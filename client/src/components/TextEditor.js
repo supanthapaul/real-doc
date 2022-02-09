@@ -2,6 +2,7 @@ import React, { useEffect, useCallback, useState } from 'react';
 import Quill from 'quill';
 import 'quill/dist/quill.snow.css';
 import { io } from 'socket.io-client';
+import { useParams } from 'react-router-dom';
 
 
 const TOOLBAR_OPTIONS = [
@@ -17,6 +18,7 @@ const TOOLBAR_OPTIONS = [
 ];
 
 export default function TextEditor() {
+	const {id : documentId} = useParams();
 	const [socket, setSocket] = useState();
 	const [quill, setQuill] = useState();
 
@@ -29,6 +31,16 @@ export default function TextEditor() {
 			s.disconnect();
 		}
 	}, []);
+
+	useEffect(() => {
+		if(socket == null || quill == null) return;
+
+		socket.once('load-document', document => {
+			quill.setContents(document);
+			quill.enable();
+		})
+		socket.emit('get-document', documentId);
+	}, [socket, quill, documentId]);
 
 	// Handler for sending text changes
 	useEffect(() => {
@@ -76,8 +88,11 @@ export default function TextEditor() {
 			theme: 'snow', 
 			modules: { toolbar: TOOLBAR_OPTIONS } 
 		});
+		// disable document by default (until socket connection is made)
+		myQuill.disable();
+		myQuill.setText('Loading...');
 		setQuill(myQuill);
 	}, []);
 
-	return <div class='container' ref={wrapperRef}></div>;
+	return <div className='container' ref={wrapperRef}></div>;
 }
