@@ -5,6 +5,7 @@ import { io } from 'socket.io-client';
 import { useParams } from 'react-router-dom';
 
 
+const SAVE_INTERVAL_MS = 2000;
 const TOOLBAR_OPTIONS = [
 	[{ header: [1, 2, 3, 4, 5, 6, false] }],
 	[{ font: [] }],
@@ -36,7 +37,8 @@ export default function TextEditor() {
 		if(socket == null || quill == null) return;
 
 		socket.once('load-document', document => {
-			quill.setContents(document);
+			console.log(document);
+			quill.setContents(document.data);
 			quill.enable();
 		})
 		socket.emit('get-document', documentId);
@@ -57,6 +59,21 @@ export default function TextEditor() {
 		// cleanup
 		return () => {
 			quill.off('text-change', textChangeHandler);
+		}
+	}, [socket, quill]);
+
+	// Handler for saving document
+	useEffect(() => {
+		if(socket == null || quill == null) return;
+
+		const interval = setInterval(() => {
+			// console.log("saving doc");
+			// console.log(quill.getContents());
+			socket.emit('save-document', quill.getContents());
+		}, SAVE_INTERVAL_MS);
+
+		return () => {
+			clearInterval(interval);
 		}
 	}, [socket, quill]);
 
